@@ -1,0 +1,13 @@
+__pycache__
+*.pyc
+.env
+.git
+tests
+.venv
+.ruff_cache
+.pytest_cache
+.mypy_cache
+.gitignore
+.pre-commit-config.yaml
+Makefile
+*.md
