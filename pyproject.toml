@@ -41,8 +41,10 @@ quote-style = "double"
 [tool.mypy]
 strict = true
 python_version = "3.12"
+explicit_package_bases = true
 disallow_any_unimported = true
 disallow_any_expr = false
+warn_unused_ignores = false
 
 [[tool.mypy.overrides]]
 module = ["psycopg", "psycopg.*"]

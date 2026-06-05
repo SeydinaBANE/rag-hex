@@ -22,11 +22,7 @@ class TestOpenRouterLLM:
         route = respx.post("https://openrouter.ai/api/v1/chat/completions").mock(
             return_value=httpx.Response(
                 200,
-                json={
-                    "choices": [
-                        {"message": {"content": "Voici la réponse."}}
-                    ]
-                },
+                json={"choices": [{"message": {"content": "Voici la réponse."}}]},
             )
         )
 

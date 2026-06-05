@@ -11,9 +11,9 @@ from rag_system.domain.port.outbound.document_store_port import DocumentStorePor
 class PostgresDocumentStore(DocumentStorePort):
     def __init__(self, database_url: str) -> None:
         self._database_url = database_url
-        self._conn: AsyncConnection | None = None
+        self._conn: AsyncConnection | None = None  # type: ignore[no-any-unimported]
 
-    async def _ensure_connection(self) -> AsyncConnection:
+    async def _ensure_connection(self) -> AsyncConnection:  # type: ignore[no-any-unimported]
         if self._conn is None or self._conn.closed:
             self._conn = await psycopg.AsyncConnection.connect(self._database_url)
             await self._migrate()

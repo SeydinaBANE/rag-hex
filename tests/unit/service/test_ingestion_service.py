@@ -13,9 +13,7 @@ class TestIngestionService:
         return AsyncMock(), AsyncMock(), AsyncMock()
 
     @pytest.fixture
-    def service(
-        self, mock_ports: tuple[AsyncMock, AsyncMock, AsyncMock]
-    ) -> IngestionService:
+    def service(self, mock_ports: tuple[AsyncMock, AsyncMock, AsyncMock]) -> IngestionService:
         embedder, doc_store, retriever = mock_ports
         return IngestionService(
             embedder=embedder,
@@ -32,10 +30,7 @@ class TestIngestionService:
         doc = Document(id="doc-1", content="Hello world this is a test document", metadata={})
 
         chunks = service._chunk_document(doc)
-        mock_embeddings = [
-            Embedding(vector=[0.1, 0.2], model="test", dimensions=2)
-            for _ in chunks
-        ]
+        mock_embeddings = [Embedding(vector=[0.1, 0.2], model="test", dimensions=2) for _ in chunks]
         embedder.embed_batch = AsyncMock(return_value=mock_embeddings)
 
         await service.ingest(doc)

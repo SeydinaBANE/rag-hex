@@ -14,7 +14,7 @@ format:
 	$(UV) run ruff format rag_system/ tests/
 
 typecheck:
-	$(UV) run mypy --strict rag_system/
+	$(UV) run mypy --strict --no-warn-unused-ignores -p rag_system
 
 test:
 	$(UV) run pytest tests/

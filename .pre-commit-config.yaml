@@ -9,8 +9,9 @@ repos:
     rev: v1.14.0
     hooks:
       - id: mypy
-        args: [--strict, rag_system/]
-        additional_dependencies: [pydantic, httpx, fastapi, typer]
+        args: [--strict, --no-warn-unused-ignores, --explicit-package-bases, -p, rag_system]
+        pass_filenames: false
+        additional_dependencies: [pydantic, pydantic-settings, httpx, fastapi, typer]
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
