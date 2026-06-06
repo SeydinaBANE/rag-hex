@@ -62,7 +62,7 @@ class TestQueryService:
             yield "Hello"
             yield " world"
 
-        llm.generate_stream = lambda _prompt, _ctx: fake_stream()  # type: ignore[assignment]
+        llm.generate_stream = lambda **_: fake_stream()  # type: ignore[assignment]
 
         tokens = [t async for t in service.query_stream(Query(text="hello"))]
         assert tokens == ["Hello", " world"]
