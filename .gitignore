@@ -13,3 +13,6 @@ __pycache__/
 *.swo
 dist/
 build/
+
+#md
+architecture.md

@@ -1,0 +1,55 @@
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+class ApiError extends Error {
+  constructor(
+    public status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const url = `${BASE_URL}${path}`;
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new ApiError(response.status, body || response.statusText);
+  }
+
+  return response.json() as Promise<T>;
+}
+
+export const api = {
+  query: (body: { text: string; top_k?: number }) =>
+    request<import("@/lib/types/api").QueryResponse>("/query", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  ingest: (body: import("@/lib/types/api").IngestRequest) =>
+    request<import("@/lib/types/api").IngestResponse>("/ingest", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  health: () =>
+    request<import("@/lib/types/api").HealthResponse>("/health"),
+
+  queryStream: (body: { text: string; top_k?: number }): Promise<ReadableStream<Uint8Array> | null> => {
+    const url = `${BASE_URL}/query/stream`;
+    return fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).then((res) => res.body);
+  },
+};

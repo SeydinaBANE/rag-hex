@@ -1,4 +1,8 @@
+import json
+from collections.abc import AsyncGenerator
+
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
 
 from rag_system.adapter.inbound.api.schemas import (
     HealthResponse,
@@ -41,6 +45,18 @@ async def query_endpoint(request: QueryRequest) -> QueryResponse:
             for r in result.results
         ],
     )
+
+
+@app.post("/query/stream")
+async def query_stream_endpoint(request: QueryRequest) -> StreamingResponse:
+    query_obj = Query(text=request.text, top_k=request.top_k, filters=request.filters)
+
+    async def event_stream() -> AsyncGenerator[str, None]:
+        async for token in container.query_service.query_stream(query_obj):
+            yield f"data: {json.dumps({'type': 'token', 'data': token})}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
 @app.post("/ingest", response_model=IngestResponse)

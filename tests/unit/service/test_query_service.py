@@ -49,6 +49,33 @@ class TestQueryService:
         assert result.answer is None
         llm.generate.assert_not_called()
 
+    async def test_query_stream_returns_tokens(
+        self, service: QueryService, mock_ports: tuple[AsyncMock, AsyncMock, AsyncMock, AsyncMock]
+    ) -> None:
+        _, retriever, llm, reranker = mock_ports
+        meta = ChunkMetadata(source_document_id="doc-1", position=0)
+        results = [SearchResult(chunk_id="c1", content="hello", score=0.9, metadata=meta)]
+        retriever.search = AsyncMock(return_value=results)
+        reranker.rerank = AsyncMock(return_value=results)
+
+        async def fake_stream() -> str:
+            yield "Hello"
+            yield " world"
+
+        llm.generate_stream = lambda _prompt, _ctx: fake_stream()  # type: ignore[assignment]
+
+        tokens = [t async for t in service.query_stream(Query(text="hello"))]
+        assert tokens == ["Hello", " world"]
+
+    async def test_query_stream_no_results(
+        self, service: QueryService, mock_ports: tuple[AsyncMock, AsyncMock, AsyncMock, AsyncMock]
+    ) -> None:
+        _, retriever, llm, _ = mock_ports
+        retriever.search = AsyncMock(return_value=[])
+
+        tokens = [t async for t in service.query_stream(Query(text="hello"))]
+        assert tokens == []
+
     async def test_query_skips_reranker_when_none(self) -> None:
         embedder = AsyncMock()
         retriever = AsyncMock()

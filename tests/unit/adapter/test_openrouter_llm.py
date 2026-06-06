@@ -53,3 +53,31 @@ class TestOpenRouterLLM:
         assert sent["model"] == "anthropic/claude-sonnet-20241022"
         assert "ctx1" in sent["messages"][1]["content"]
         assert "Question ?" in sent["messages"][1]["content"]
+
+    @respx.mock
+    async def test_generate_stream_yields_tokens(self, llm: OpenRouterLLM) -> None:
+        def sse_chunk(content: str) -> str:
+            return f"data: {json.dumps({'choices': [{'delta': {'content': content}}]})}\n\n"
+
+        chunks = [sse_chunk("Hello"), sse_chunk(" world"), "data: [DONE]\n\n"]
+        route = respx.post("https://openrouter.ai/api/v1/chat/completions").mock(
+            return_value=httpx.Response(200, text="".join(chunks))
+        )
+
+        tokens = [t async for t in llm.generate_stream(prompt="hi", context=["ctx"])]
+
+        assert tokens == ["Hello", " world"]
+        assert route.called
+
+    @respx.mock
+    async def test_generate_stream_empty_delta(self, llm: OpenRouterLLM) -> None:
+        route = respx.post("https://openrouter.ai/api/v1/chat/completions").mock(
+            return_value=httpx.Response(
+                200,
+                text="data: [DONE]\n\n",
+            )
+        )
+
+        tokens = [t async for t in llm.generate_stream(prompt="hi", context=["ctx"])]
+        assert tokens == []
+        assert route.called
