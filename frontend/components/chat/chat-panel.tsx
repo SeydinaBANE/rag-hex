@@ -37,7 +37,11 @@ export function ChatPanel() {
           <MessageBubble key={i} role={msg.role} content={msg.content} />
         ))}
         {isStreaming && tokens.length > 0 && (
-          <MessageBubble role="assistant" content={tokens.join("")} isStreaming />
+          <MessageBubble
+            role="assistant"
+            content={tokens.join("")}
+            isStreaming
+          />
         )}
         {messages.length === 0 && !isStreaming && (
           <p className="text-center text-[var(--muted-foreground)] mt-20">
@@ -46,7 +50,10 @@ export function ChatPanel() {
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="border-t border-[var(--border)] p-4 flex gap-2">
+      <form
+        onSubmit={handleSubmit}
+        className="border-t border-[var(--border)] p-4 flex gap-2"
+      >
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}

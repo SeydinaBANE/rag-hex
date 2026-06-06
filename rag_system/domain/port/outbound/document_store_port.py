@@ -12,3 +12,6 @@ class DocumentStorePort(ABC):
 
     @abstractmethod
     async def delete(self, document_id: str) -> None: ...
+
+    @abstractmethod
+    async def list(self) -> list[Document]: ...

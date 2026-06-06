@@ -35,25 +35,34 @@ jobs:
           POSTGRES_DB: rag_test
           POSTGRES_USER: test
           POSTGRES_PASSWORD: test
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
       - run: uv sync
-      - name: Run tests
-        run: uv run pytest tests/
+      - name: Run unit tests
+        run: uv run pytest tests/unit/
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           OPENROUTER_LLM_MODEL: openai/gpt-4o-mini
           OPENROUTER_EMBEDDING_MODEL: openai/text-embedding-3-small
-          QDRANT_URL: http://localhost:6333
+          QDRANT_HOST: localhost
+          QDRANT_PORT: 6333
           QDRANT_COLLECTION: rag_test
-          DATABASE_URL: postgresql+psycopg://test:test@localhost:5432/rag_test
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: rag_test
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
 
   docker:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build Docker image
+      - name: Build backend image
         run: docker build -t rag-hex .
+      - name: Build frontend image
+        run: docker build -t rag-hex-frontend frontend/

@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 
 from rag_system.adapter.inbound.api.router import app
 from rag_system.config.container import Container
-from rag_system.domain.model.document import ChunkMetadata
+from rag_system.domain.model.document import ChunkMetadata, Document
 from rag_system.domain.model.query import QueryResult, SearchResult
 
 
@@ -57,3 +57,76 @@ class TestAPI:
         data = response.json()
         assert data["status"] == "ok"
         assert data["document_id"] == "doc-1"
+
+    @patch.object(Container, "document_store")
+    def test_list_documents(self, mock_store: AsyncMock, client: TestClient) -> None:
+        mock_store.list = AsyncMock(
+            return_value=[
+                Document(
+                    id="doc-1",
+                    content="",
+                    metadata={"filename": "doc-1.txt", "_chunk_count": 3},
+                    chunks=None,
+                ),
+                Document(
+                    id="doc-2",
+                    content="",
+                    metadata={"filename": "doc-2.txt", "_chunk_count": 1},
+                    chunks=None,
+                ),
+            ],
+        )
+
+        response = client.get("/documents")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["documents"]) == 2
+        assert data["documents"][0]["id"] == "doc-1"
+        assert data["documents"][0]["chunk_count"] == 3
+        assert data["documents"][1]["id"] == "doc-2"
+        assert data["documents"][1]["chunk_count"] == 1
+
+    @patch.object(Container, "document_store")
+    def test_get_document_found(self, mock_store: AsyncMock, client: TestClient) -> None:
+        doc = Document(id="doc-1", content="hello world", metadata={"filename": "doc-1.txt"})
+        mock_store.get = AsyncMock(return_value=doc)
+
+        response = client.get("/documents/doc-1")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["id"] == "doc-1"
+        assert data["content"] == "hello world"
+        assert data["metadata"] == {"filename": "doc-1.txt"}
+
+    @patch.object(Container, "document_store")
+    def test_get_document_not_found(self, mock_store: AsyncMock, client: TestClient) -> None:
+        mock_store.get = AsyncMock(return_value=None)
+
+        response = client.get("/documents/nonexistent")
+
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Document not found"
+
+    @patch.object(Container, "document_store")
+    def test_delete_document(self, mock_store: AsyncMock, client: TestClient) -> None:
+        doc = Document(id="doc-1", content="hello", metadata={})
+        mock_store.get = AsyncMock(return_value=doc)
+        mock_store.delete = AsyncMock(return_value=None)
+
+        response = client.delete("/documents/doc-1")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "deleted"
+        assert data["document_id"] == "doc-1"
+
+    @patch.object(Container, "document_store")
+    def test_delete_document_not_found(self, mock_store: AsyncMock, client: TestClient) -> None:
+        mock_store.get = AsyncMock(return_value=None)
+
+        response = client.delete("/documents/nonexistent")
+
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Document not found"

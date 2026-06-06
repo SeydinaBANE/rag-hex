@@ -1,19 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api/client";
-import type { IngestResponse } from "@/lib/types/api";
+import type { DocumentSummary } from "@/lib/types/api";
 
 export default function DocumentsPage() {
-  const [files, setFiles] = useState<{ name: string; status: string }[]>([]);
+  const [documents, setDocuments] = useState<DocumentSummary[]>([]);
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    api.listDocuments().then((res) => setDocuments(res.documents));
+  }, []);
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setUploading(true);
     const content = await file.text();
-    setFiles((prev) => [...prev, { name: file.name, status: "en cours..." }]);
 
     try {
       await api.ingest({
@@ -21,13 +27,12 @@ export default function DocumentsPage() {
         content,
         metadata: { filename: file.name },
       });
-      setFiles((prev) =>
-        prev.map((f) => (f.name === file.name ? { ...f, status: "indexé" } : f)),
-      );
+      const res = await api.listDocuments();
+      setDocuments(res.documents);
     } catch {
-      setFiles((prev) =>
-        prev.map((f) => (f.name === file.name ? { ...f, status: "erreur" } : f)),
-      );
+      /* ignore */
+    } finally {
+      setUploading(false);
     }
   }
 
@@ -36,39 +41,36 @@ export default function DocumentsPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Documents</h1>
         <label className="cursor-pointer">
-          <Button variant="primary" asChild>
-            <span>+ Upload</span>
+          <Button variant="primary" asChild disabled={uploading}>
+            <span>{uploading ? "Upload..." : "+ Upload"}</span>
           </Button>
           <input
             type="file"
             className="hidden"
             accept=".txt,.md,.pdf"
             onChange={handleUpload}
+            disabled={uploading}
           />
         </label>
       </div>
 
       <div className="border border-[var(--border)] rounded-lg divide-y divide-[var(--border)]">
-        {files.length === 0 && (
+        {documents.length === 0 && (
           <p className="p-4 text-sm text-[var(--muted-foreground)]">
             Aucun document indexé
           </p>
         )}
-        {files.map((f) => (
-          <div key={f.name} className="flex items-center justify-between p-4 text-sm">
-            <span>{f.name}</span>
-            <span
-              className={
-                f.status === "indexé"
-                  ? "text-green-600"
-                  : f.status === "erreur"
-                    ? "text-red-500"
-                    : "text-[var(--muted-foreground)]"
-              }
-            >
-              {f.status}
+        {documents.map((doc) => (
+          <Link
+            key={doc.id}
+            href={`/documents/${doc.id}`}
+            className="flex items-center justify-between p-4 text-sm hover:bg-[var(--muted)] transition-colors"
+          >
+            <span>{doc.id}</span>
+            <span className="text-[var(--muted-foreground)]">
+              {doc.chunk_count} chunk{doc.chunk_count !== 1 ? "s" : ""}
             </span>
-          </div>
+          </Link>
         ))}
       </div>
     </div>

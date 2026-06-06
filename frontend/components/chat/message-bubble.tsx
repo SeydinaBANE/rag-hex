@@ -6,13 +6,14 @@ interface MessageBubbleProps {
   isStreaming?: boolean;
 }
 
-export function MessageBubble({ role, content, isStreaming }: MessageBubbleProps) {
+export function MessageBubble({
+  role,
+  content,
+  isStreaming,
+}: MessageBubbleProps) {
   return (
     <div
-      className={cn(
-        "flex",
-        role === "user" ? "justify-end" : "justify-start",
-      )}
+      className={cn("flex", role === "user" ? "justify-end" : "justify-start")}
     >
       <div
         className={cn(

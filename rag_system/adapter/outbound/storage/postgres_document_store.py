@@ -11,9 +11,9 @@ from rag_system.domain.port.outbound.document_store_port import DocumentStorePor
 class PostgresDocumentStore(DocumentStorePort):
     def __init__(self, database_url: str) -> None:
         self._database_url = database_url
-        self._conn: AsyncConnection | None = None  # type: ignore[no-any-unimported]
+        self._conn: AsyncConnection | None = None
 
-    async def _ensure_connection(self) -> AsyncConnection:  # type: ignore[no-any-unimported]
+    async def _ensure_connection(self) -> AsyncConnection:
         if self._conn is None or self._conn.closed:
             self._conn = await psycopg.AsyncConnection.connect(self._database_url)
             await self._migrate()
@@ -112,6 +112,26 @@ class PostgresDocumentStore(DocumentStorePort):
             await cur.execute("DELETE FROM chunks WHERE document_id = %s", (document_id,))
             await cur.execute("DELETE FROM documents WHERE id = %s", (document_id,))
         await conn.commit()
+
+    async def list(self) -> list[Document]:
+        conn = await self._ensure_connection()
+        async with conn.cursor() as cur:
+            await cur.execute("""
+                SELECT d.id, d.metadata,
+                       (SELECT COUNT(*) FROM chunks WHERE document_id = d.id) as chunk_count
+                FROM documents d
+                ORDER BY d.id
+            """)
+            rows = await cur.fetchall()
+            result: list[Document] = []
+            for row in rows:
+                doc_id, metadata_raw, chunk_count = row
+                metadata = (
+                    json.loads(metadata_raw) if isinstance(metadata_raw, str) else metadata_raw
+                )
+                metadata["_chunk_count"] = chunk_count
+                result.append(Document(id=doc_id, content="", metadata=metadata, chunks=None))
+            return result
 
     async def close(self) -> None:
         if self._conn is not None and not self._conn.closed:

@@ -11,7 +11,11 @@ export function Navbar() {
       <span className="text-sm text-[var(--muted-foreground)]">
         {session?.user?.name}
       </span>
-      <Button variant="ghost" size="sm" onClick={() => signOut({ callbackUrl: "/login" })}>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => signOut({ callbackUrl: "/login" })}
+      >
         Déconnexion
       </Button>
     </header>

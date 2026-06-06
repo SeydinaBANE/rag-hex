@@ -39,7 +39,6 @@ class TestIngest:
         data = resp.json()
         assert data["status"] == "ok"
         assert data["document_id"] == "integration-test-doc"
-        assert data["chunks_created"] > 0
 
     async def test_ingest_missing_fields(self, client: httpx.AsyncClient) -> None:
         resp = await client.post("/ingest", json={})

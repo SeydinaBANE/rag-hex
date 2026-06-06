@@ -41,10 +41,12 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
-  health: () =>
-    request<import("@/lib/types/api").HealthResponse>("/health"),
+  health: () => request<import("@/lib/types/api").HealthResponse>("/health"),
 
-  queryStream: (body: { text: string; top_k?: number }): Promise<ReadableStream<Uint8Array> | null> => {
+  queryStream: (body: {
+    text: string;
+    top_k?: number;
+  }): Promise<ReadableStream<Uint8Array> | null> => {
     const url = `${BASE_URL}/query/stream`;
     return fetch(url, {
       method: "POST",
@@ -52,4 +54,15 @@ export const api = {
       body: JSON.stringify(body),
     }).then((res) => res.body);
   },
+
+  listDocuments: () =>
+    request<import("@/lib/types/api").DocumentListResponse>("/documents"),
+
+  getDocument: (id: string) =>
+    request<import("@/lib/types/api").DocumentDetail>(`/documents/${id}`),
+
+  deleteDocument: (id: string) =>
+    request<import("@/lib/types/api").DeleteResponse>(`/documents/${id}`, {
+      method: "DELETE",
+    }),
 };

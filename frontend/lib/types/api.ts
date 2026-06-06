@@ -30,3 +30,32 @@ export interface IngestResponse {
 export interface HealthResponse {
   status: string;
 }
+
+export interface DocumentSummary {
+  id: string;
+  metadata: Record<string, string>;
+  chunk_count: number;
+}
+
+export interface DocumentListResponse {
+  documents: DocumentSummary[];
+}
+
+export interface ChunkDetail {
+  chunk_id: string;
+  content: string;
+  position: number;
+  page: number | null;
+}
+
+export interface DocumentDetail {
+  id: string;
+  content: string;
+  metadata: Record<string, string>;
+  chunks: ChunkDetail[];
+}
+
+export interface DeleteResponse {
+  status: string;
+  document_id: string;
+}

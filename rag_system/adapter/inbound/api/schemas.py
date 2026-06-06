@@ -1,3 +1,5 @@
+from typing import Any
+
 from pydantic import BaseModel
 
 
@@ -32,3 +34,32 @@ class IngestResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     status: str = "ok"
+
+
+class DocumentSummary(BaseModel):
+    id: str
+    metadata: dict[str, Any]
+    chunk_count: int
+
+
+class DocumentListResponse(BaseModel):
+    documents: list[DocumentSummary]
+
+
+class ChunkDetail(BaseModel):
+    chunk_id: str
+    content: str
+    position: int
+    page: int | None = None
+
+
+class DocumentDetail(BaseModel):
+    id: str
+    content: str
+    metadata: dict[str, Any]
+    chunks: list[ChunkDetail]
+
+
+class DeleteResponse(BaseModel):
+    status: str
+    document_id: str

@@ -39,9 +39,7 @@ export default function LoginPage() {
           Connectez-vous pour accéder à l&apos;application
         </p>
 
-        {error && (
-          <p className="text-sm text-red-500 text-center">{error}</p>
-        )}
+        {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
         <div className="space-y-2">
           <label htmlFor="username" className="text-sm font-medium">

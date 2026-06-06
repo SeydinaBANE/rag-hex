@@ -13,7 +13,9 @@ export default function SettingsPage() {
 
       <div className="space-y-4">
         <div className="space-y-2">
-          <label className="text-sm font-medium">Nombre de résultats (top_k)</label>
+          <label className="text-sm font-medium">
+            Nombre de résultats (top_k)
+          </label>
           <Input
             type="number"
             min={1}

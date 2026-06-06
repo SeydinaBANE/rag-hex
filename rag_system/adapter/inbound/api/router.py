@@ -5,6 +5,11 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 
 from rag_system.adapter.inbound.api.schemas import (
+    ChunkDetail,
+    DeleteResponse,
+    DocumentDetail,
+    DocumentListResponse,
+    DocumentSummary,
     HealthResponse,
     IngestRequest,
     IngestResponse,
@@ -72,3 +77,47 @@ async def ingest_endpoint(request: IngestRequest) -> IngestResponse:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
     return IngestResponse(status="ok", document_id=request.document_id)
+
+
+@app.get("/documents", response_model=DocumentListResponse)
+async def list_documents() -> DocumentListResponse:
+    docs = await container.document_store.list()
+    summaries = [
+        DocumentSummary(
+            id=doc.id,
+            metadata={k: v for k, v in doc.metadata.items() if k != "_chunk_count"},
+            chunk_count=doc.metadata.get("_chunk_count", 0),
+        )
+        for doc in docs
+    ]
+    return DocumentListResponse(documents=summaries)
+
+
+@app.get("/documents/{document_id}", response_model=DocumentDetail)
+async def get_document(document_id: str) -> DocumentDetail:
+    doc = await container.document_store.get(document_id)
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+    return DocumentDetail(
+        id=doc.id,
+        content=doc.content,
+        metadata=doc.metadata,
+        chunks=[
+            ChunkDetail(
+                chunk_id=c.id,
+                content=c.content,
+                position=c.metadata.position,
+                page=c.metadata.page,
+            )
+            for c in (doc.chunks or [])
+        ],
+    )
+
+
+@app.delete("/documents/{document_id}", response_model=DeleteResponse)
+async def delete_document(document_id: str) -> DeleteResponse:
+    doc = await container.document_store.get(document_id)
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+    await container.document_store.delete(document_id)
+    return DeleteResponse(status="deleted", document_id=document_id)
