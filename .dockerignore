@@ -11,3 +11,5 @@ tests
 .pre-commit-config.yaml
 Makefile
 *.md
+frontend
+node_modules

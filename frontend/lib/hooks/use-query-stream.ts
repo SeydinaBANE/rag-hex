@@ -54,8 +54,9 @@ export function useQueryStream() {
           }
           try {
             const event: StreamEvent = JSON.parse(payload);
-            if (event.type === "token" && event.data) {
-              setTokens((prev) => [...prev, event.data]);
+            const token = event.data;
+            if (event.type === "token" && token) {
+              setTokens((prev) => [...prev, token]);
             }
           } catch {
             // skip malformed events
