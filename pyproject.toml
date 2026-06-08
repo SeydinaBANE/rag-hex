@@ -17,15 +17,6 @@ dependencies = [
     "gunicorn>=23.0.0",
 ]
 
-[project.optional-dependencies]
-dev = [
-    "pytest>=8.3.0",
-    "pytest-asyncio>=0.25.0",
-    "respx>=0.22.0",
-    "ruff>=0.9.0",
-    "mypy>=1.14.0",
-    "pre-commit>=4.1.0",
-]
 
 [tool.ruff]
 line-length = 100
