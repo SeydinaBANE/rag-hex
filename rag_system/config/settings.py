@@ -1,8 +1,13 @@
+from typing import Literal
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    environment: Literal["development", "production"] = Field(
+        default="development", validation_alias="ENVIRONMENT"
+    )
     openrouter_api_key: str = Field(default="", validation_alias="OPENROUTER_API_KEY")
     openrouter_llm_model: str = Field(
         default="anthropic/claude-sonnet-20241022",
@@ -31,6 +36,12 @@ class Settings(BaseSettings):
             f"postgresql://{self.postgres_user}:{self.postgres_password}"
             f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
         )
+
+    api_key: str = Field(default="", validation_alias="API_KEY")
+    allowed_origins: list[str] = Field(
+        default=["http://localhost:3000", "http://localhost:8000"],
+        validation_alias="ALLOWED_ORIGINS",
+    )
 
     chunk_size: int = 512
     chunk_overlap: int = 64

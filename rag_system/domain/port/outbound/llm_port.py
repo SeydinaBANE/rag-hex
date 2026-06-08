@@ -8,3 +8,6 @@ class LLMPort(ABC):
 
     @abstractmethod
     def generate_stream(self, prompt: str, context: list[str]) -> AsyncIterator[str]: ...
+
+    @abstractmethod
+    async def close(self) -> None: ...

@@ -1,7 +1,12 @@
-import httpx
+import logging
 
+from httpx import AsyncClient, AsyncHTTPTransport, HTTPStatusError, Timeout
+
+from rag_system.domain.exceptions import EmbeddingError
 from rag_system.domain.model.embedding import Embedding
 from rag_system.domain.port.outbound.embedder_port import EmbedderPort
+
+logger = logging.getLogger(__name__)
 
 
 class OpenRouterEmbedder(EmbedderPort):
@@ -9,8 +14,11 @@ class OpenRouterEmbedder(EmbedderPort):
         self, api_key: str, model: str, base_url: str = "https://openrouter.ai/api/v1"
     ) -> None:
         self._model = model
-        self._client = httpx.AsyncClient(
+        transport = AsyncHTTPTransport(retries=3)
+        self._client = AsyncClient(
             base_url=base_url,
+            transport=transport,
+            timeout=Timeout(60.0, connect=15.0),
             headers={
                 "Authorization": f"Bearer {api_key}",
                 "HTTP-Referer": "https://github.com/rag-hex",
@@ -18,27 +26,33 @@ class OpenRouterEmbedder(EmbedderPort):
         )
 
     async def embed(self, text: str) -> Embedding:
-        response = await self._client.post(
-            "/embeddings",
-            json={
-                "model": self._model,
-                "input": text,
-            },
-        )
-        response.raise_for_status()
+        logger.debug("Embedding single text via %s", self._model)
+        try:
+            response = await self._client.post(
+                "/embeddings",
+                json={"model": self._model, "input": text},
+            )
+            response.raise_for_status()
+        except HTTPStatusError as exc:
+            raise EmbeddingError(
+                f"OpenRouter embeddings failed: {exc.response.status_code}"
+            ) from exc
         data = response.json()
         vector = data["data"][0]["embedding"]
         return Embedding(vector=vector, model=self._model, dimensions=len(vector))
 
     async def embed_batch(self, texts: list[str]) -> list[Embedding]:
-        response = await self._client.post(
-            "/embeddings",
-            json={
-                "model": self._model,
-                "input": texts,
-            },
-        )
-        response.raise_for_status()
+        logger.info("Embedding batch of %d texts via %s", len(texts), self._model)
+        try:
+            response = await self._client.post(
+                "/embeddings",
+                json={"model": self._model, "input": texts},
+            )
+            response.raise_for_status()
+        except HTTPStatusError as exc:
+            raise EmbeddingError(
+                f"OpenRouter embeddings failed: {exc.response.status_code}"
+            ) from exc
         data = response.json()
         return [
             Embedding(

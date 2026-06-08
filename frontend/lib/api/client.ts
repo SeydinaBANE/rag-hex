@@ -1,4 +1,5 @@
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const API_KEY = process.env.NEXT_PUBLIC_API_KEY ?? "";
 
 class ApiError extends Error {
   constructor(
@@ -10,12 +11,17 @@ class ApiError extends Error {
   }
 }
 
+function authHeaders(): Record<string, string> {
+  return API_KEY ? { Authorization: `Bearer ${API_KEY}` } : {};
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const url = `${BASE_URL}${path}`;
   const response = await fetch(url, {
     ...options,
     headers: {
       "Content-Type": "application/json",
+      ...authHeaders(),
       ...options.headers,
     },
   });
@@ -50,7 +56,10 @@ export const api = {
     const url = `${BASE_URL}/query/stream`;
     return fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders(),
+      },
       body: JSON.stringify(body),
     }).then((res) => res.body);
   },

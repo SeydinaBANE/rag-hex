@@ -3,6 +3,7 @@ import pytest
 import respx
 
 from rag_system.adapter.outbound.embedding.openrouter_embedder import OpenRouterEmbedder
+from rag_system.domain.exceptions import EmbeddingError
 
 
 @pytest.fixture
@@ -61,5 +62,5 @@ class TestOpenRouterEmbedder:
             return_value=httpx.Response(429, json={"error": "rate limit"})
         )
 
-        with pytest.raises(httpx.HTTPStatusError):
+        with pytest.raises(EmbeddingError):
             await embedder.embed("test")

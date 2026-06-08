@@ -1,8 +1,12 @@
+import logging
+
 from rag_system.domain.model.document import Chunk, ChunkMetadata, Document
 from rag_system.domain.port.inbound.ingestion_use_case import IngestionUseCase
 from rag_system.domain.port.outbound.document_store_port import DocumentStorePort
 from rag_system.domain.port.outbound.embedder_port import EmbedderPort
 from rag_system.domain.port.outbound.retriever_port import RetrieverPort
+
+logger = logging.getLogger(__name__)
 
 
 class IngestionService(IngestionUseCase):
@@ -22,6 +26,8 @@ class IngestionService(IngestionUseCase):
 
     async def ingest(self, document: Document) -> None:
         chunks = self._chunk_document(document)
+        logger.info("Ingesting document %s: %d chunks", document.id, len(chunks))
+
         texts = [c.content for c in chunks]
         embeddings = await self._embedder.embed_batch(texts)
 
@@ -30,6 +36,8 @@ class IngestionService(IngestionUseCase):
 
         document.chunks = chunks
         await self._document_store.store(document)
+        await self._retriever.store_chunks(chunks)
+        logger.info("Document %s ingested successfully", document.id)
 
     def _chunk_document(self, document: Document) -> list[Chunk]:
         content = document.content

@@ -86,3 +86,13 @@ class Container:
                 chunk_overlap=self.settings.chunk_overlap,
             )
         return self._ingestion_service
+
+    async def shutdown(self) -> None:
+        if self._embedder is not None:
+            await self._embedder.close()
+        if self._llm is not None:
+            await self._llm.close()
+        if self._retriever is not None:
+            await self._retriever.close()
+        if self._document_store is not None:
+            await self._document_store.close()

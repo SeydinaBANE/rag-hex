@@ -1,5 +1,5 @@
 .PHONY: install lint format typecheck test test-unit test-integration \
-        clean build up down rebuild all precommit
+        clean build up down rebuild logs health readiness all precommit
 
 VENV = .venv
 UV = uv
@@ -20,7 +20,7 @@ test:
 	$(UV) run pytest tests/
 
 test-unit:
-	$(UV) run pytest tests/unit/
+	$(UV) run pytest tests/unit/ --cov=rag_system --cov-report=term-missing
 
 test-integration:
 	$(UV) run pytest tests/integration/
@@ -43,4 +43,13 @@ down:
 
 rebuild: down build up
 
-all: lint typecheck test
+logs:
+	docker compose logs -f
+
+health:
+	curl -s http://localhost:8000/health | python3 -m json.tool
+
+readiness:
+	curl -s http://localhost:8000/readiness | python3 -m json.tool
+
+all: lint typecheck test-unit

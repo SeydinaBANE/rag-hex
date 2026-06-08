@@ -1,6 +1,7 @@
 import heapq
 
-from rag_system.domain.model.document import ChunkMetadata
+from rag_system.domain.model.document import Chunk, ChunkMetadata
+from rag_system.domain.model.embedding import Embedding
 from rag_system.domain.model.query import Query, SearchResult
 from rag_system.domain.port.outbound.retriever_port import RetrieverPort
 
@@ -9,13 +10,15 @@ class InMemoryRetriever(RetrieverPort):
     def __init__(self) -> None:
         self._chunks: list[tuple[str, str, ChunkMetadata]] = []
 
-    def add_chunk(self, chunk_id: str, content: str, metadata: ChunkMetadata) -> None:
-        self._chunks.append((chunk_id, content, metadata))
+    async def store_chunks(self, chunks: list[Chunk]) -> None:
+        for c in chunks:
+            self._chunks.append((c.id, c.content, c.metadata))
 
     def clear(self) -> None:
         self._chunks.clear()
 
-    async def search(self, query: Query) -> list[SearchResult]:
+    async def search(self, query: Query, query_embedding: Embedding) -> list[SearchResult]:
+        _ = query_embedding
         if not self._chunks:
             return []
 
@@ -30,6 +33,15 @@ class InMemoryRetriever(RetrieverPort):
             SearchResult(chunk_id=cid, content=content, score=score, metadata=meta)
             for score, cid, content, meta in top_k
         ]
+
+    async def delete_chunks(self, document_id: str) -> None:
+        self._chunks = [item for item in self._chunks if item[2].source_document_id != document_id]
+
+    async def ping(self) -> bool:
+        return True
+
+    async def close(self) -> None:
+        self.clear()
 
     def _simple_score(self, query: str, content: str) -> float:
         q_lower = query.lower()

@@ -26,7 +26,7 @@ class TestIngestionService:
     async def test_ingest_document(
         self, service: IngestionService, mock_ports: tuple[AsyncMock, AsyncMock, AsyncMock]
     ) -> None:
-        embedder, doc_store, _ = mock_ports
+        embedder, doc_store, retriever = mock_ports
         doc = Document(id="doc-1", content="Hello world this is a test document", metadata={})
 
         chunks = service._chunk_document(doc)
@@ -37,6 +37,7 @@ class TestIngestionService:
 
         embedder.embed_batch.assert_awaited_once()
         doc_store.store.assert_awaited_once()
+        retriever.store_chunks.assert_awaited_once()
 
         assert doc.chunks is not None
         assert len(doc.chunks) > 0
@@ -46,7 +47,7 @@ class TestIngestionService:
     async def test_ingest_empty_document(
         self, service: IngestionService, mock_ports: tuple[AsyncMock, AsyncMock, AsyncMock]
     ) -> None:
-        embedder, doc_store, _ = mock_ports
+        embedder, doc_store, retriever = mock_ports
         doc = Document(id="doc-1", content="", metadata={})
 
         embedder.embed_batch = AsyncMock(return_value=[])
@@ -54,6 +55,7 @@ class TestIngestionService:
         await service.ingest(doc)
 
         doc_store.store.assert_awaited_once()
+        retriever.store_chunks.assert_awaited_once()
         assert doc.chunks is not None
         assert len(doc.chunks) == 0
 
