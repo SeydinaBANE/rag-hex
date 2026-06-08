@@ -18,7 +18,7 @@ class TestAPI:
     def test_health(self, client: TestClient) -> None:
         response = client.get("/health")
         assert response.status_code == 200
-        assert response.json() == {"status": "ok"}
+        assert response.json()["status"] == "ok"
 
     @patch.object(Container, "query_service")
     def test_query_endpoint(self, mock_service: AsyncMock, client: TestClient) -> None:
@@ -86,6 +86,8 @@ class TestAPI:
         assert data["documents"][0]["chunk_count"] == 3
         assert data["documents"][1]["id"] == "doc-2"
         assert data["documents"][1]["chunk_count"] == 1
+        assert data["limit"] == 50
+        assert data["offset"] == 0
 
     @patch.object(Container, "document_store")
     def test_get_document_found(self, mock_store: AsyncMock, client: TestClient) -> None:

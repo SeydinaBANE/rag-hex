@@ -1,11 +1,11 @@
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class QueryRequest(BaseModel):
-    text: str
-    top_k: int = 5
+    text: str = Field(min_length=1, max_length=5000)
+    top_k: int = Field(default=5, ge=1, le=50)
     filters: dict[str, str] | None = None
 
 
@@ -22,8 +22,8 @@ class QueryResponse(BaseModel):
 
 
 class IngestRequest(BaseModel):
-    document_id: str
-    content: str
+    document_id: str = Field(min_length=1, max_length=255, pattern=r"^[\w\-\.]+$")
+    content: str = Field(min_length=1, max_length=10_000_000)
     metadata: dict[str, str] = {}
 
 
@@ -36,6 +36,12 @@ class HealthResponse(BaseModel):
     status: str = "ok"
 
 
+class ReadinessResponse(BaseModel):
+    status: str
+    postgres: bool
+    qdrant: bool
+
+
 class DocumentSummary(BaseModel):
     id: str
     metadata: dict[str, Any]
@@ -44,6 +50,8 @@ class DocumentSummary(BaseModel):
 
 class DocumentListResponse(BaseModel):
     documents: list[DocumentSummary]
+    limit: int
+    offset: int
 
 
 class ChunkDetail(BaseModel):

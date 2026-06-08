@@ -5,6 +5,7 @@ import pytest
 import respx
 
 from rag_system.adapter.outbound.llm.openrouter_llm import OpenRouterLLM
+from rag_system.domain.exceptions import LLMError
 
 
 @pytest.fixture
@@ -37,7 +38,7 @@ class TestOpenRouterLLM:
             return_value=httpx.Response(401, json={"error": "unauthorized"})
         )
 
-        with pytest.raises(httpx.HTTPStatusError):
+        with pytest.raises(LLMError):
             await llm.generate(prompt="test", context=[])
 
     @respx.mock

@@ -9,3 +9,6 @@ class EmbedderPort(ABC):
 
     @abstractmethod
     async def embed_batch(self, texts: list[str]) -> list[Embedding]: ...
+
+    @abstractmethod
+    async def close(self) -> None: ...
