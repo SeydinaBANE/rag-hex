@@ -2,14 +2,36 @@ from collections.abc import AsyncIterator
 
 import httpx
 import pytest
+from qdrant_client import AsyncQdrantClient
+from qdrant_client.models import FieldCondition, Filter, MatchValue
 
 API_URL = "http://localhost:8000"
+QDRANT_URL = "http://localhost:6333"
+QDRANT_COLLECTION = "rag_documents"
+_TEST_DOC_ID = "integration-test-doc"
 
 
 @pytest.fixture
 async def client() -> AsyncIterator[httpx.AsyncClient]:
     async with httpx.AsyncClient(base_url=API_URL, timeout=30.0) as c:
         yield c
+
+
+async def _purge_test_vectors() -> None:
+    qdrant = AsyncQdrantClient(url=QDRANT_URL)
+    try:
+        await qdrant.delete(
+            collection_name=QDRANT_COLLECTION,
+            points_selector=Filter(
+                must=[
+                    FieldCondition(key="source_document_id", match=MatchValue(value=_TEST_DOC_ID))
+                ]  # noqa: E501
+            ),
+        )
+    except Exception:
+        pass
+    finally:
+        await qdrant.close()
 
 
 class TestHealth:
@@ -20,11 +42,17 @@ class TestHealth:
 
 
 class TestIngest:
+    @pytest.fixture(autouse=True)
+    async def cleanup(self, client: httpx.AsyncClient) -> AsyncIterator[None]:
+        yield
+        await client.delete(f"/documents/{_TEST_DOC_ID}")
+        await _purge_test_vectors()
+
     async def test_ingest_document(self, client: httpx.AsyncClient) -> None:
         resp = await client.post(
             "/ingest",
             json={
-                "document_id": "integration-test-doc",
+                "document_id": _TEST_DOC_ID,
                 "content": (
                     "PostgreSQL is a powerful open source object-relational database system."
                 ),
@@ -38,7 +66,7 @@ class TestIngest:
         assert resp.status_code == 200, f"Ingest failed: {resp.text}"
         data = resp.json()
         assert data["status"] == "ok"
-        assert data["document_id"] == "integration-test-doc"
+        assert data["document_id"] == _TEST_DOC_ID
 
     async def test_ingest_missing_fields(self, client: httpx.AsyncClient) -> None:
         resp = await client.post("/ingest", json={})
@@ -46,6 +74,11 @@ class TestIngest:
 
 
 class TestQuery:
+    @pytest.fixture(autouse=True)
+    async def ensure_clean_state(self, client: httpx.AsyncClient) -> None:
+        await client.delete(f"/documents/{_TEST_DOC_ID}")
+        await _purge_test_vectors()
+
     async def test_query_no_results(self, client: httpx.AsyncClient) -> None:
         resp = await client.post(
             "/query",

@@ -242,4 +242,5 @@ async def delete_document(
     if doc is None:
         raise HTTPException(status_code=404, detail="Document not found")
     await container.document_store.delete(document_id)
+    await container.retriever.delete_chunks(document_id)
     return DeleteResponse(status="deleted", document_id=document_id)

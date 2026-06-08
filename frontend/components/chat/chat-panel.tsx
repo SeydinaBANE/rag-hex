@@ -23,10 +23,13 @@ export function ChatPanel() {
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
 
-    await startStream(input);
+    const answer = await startStream(input);
     setMessages((prev) => [
       ...prev,
-      { role: "assistant", content: tokens.join("") },
+      {
+        role: "assistant",
+        content: answer || "Aucun résultat trouvé dans vos documents.",
+      },
     ]);
   }
 

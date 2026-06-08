@@ -111,11 +111,15 @@ class TestAPI:
         assert response.status_code == 404
         assert response.json()["detail"] == "Document not found"
 
+    @patch.object(Container, "retriever")
     @patch.object(Container, "document_store")
-    def test_delete_document(self, mock_store: AsyncMock, client: TestClient) -> None:
+    def test_delete_document(
+        self, mock_store: AsyncMock, mock_retriever: AsyncMock, client: TestClient
+    ) -> None:
         doc = Document(id="doc-1", content="hello", metadata={})
         mock_store.get = AsyncMock(return_value=doc)
         mock_store.delete = AsyncMock(return_value=None)
+        mock_retriever.delete_chunks = AsyncMock(return_value=None)
 
         response = client.delete("/documents/doc-1")
 
@@ -123,6 +127,7 @@ class TestAPI:
         data = response.json()
         assert data["status"] == "deleted"
         assert data["document_id"] == "doc-1"
+        mock_retriever.delete_chunks.assert_awaited_once_with("doc-1")
 
     @patch.object(Container, "document_store")
     def test_delete_document_not_found(self, mock_store: AsyncMock, client: TestClient) -> None:

@@ -16,3 +16,4 @@ build/
 
 #md
 architecture.md
+.gstack/

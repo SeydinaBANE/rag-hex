@@ -82,6 +82,30 @@ class TestQdrantRetriever:
 
         assert results == []
 
+    async def test_delete_chunks_calls_qdrant_delete(self, retriever: QdrantRetriever) -> None:
+        existing_col = MagicMock()
+        existing_col.name = "test"
+        retriever._client.get_collections = AsyncMock(
+            return_value=MagicMock(collections=[existing_col])
+        )
+        retriever._client.delete = AsyncMock()
+
+        await retriever.delete_chunks("doc-1")
+
+        retriever._client.delete.assert_awaited_once()
+        call_kwargs = retriever._client.delete.call_args.kwargs
+        assert call_kwargs["collection_name"] == "test"
+
+    async def test_delete_chunks_skips_when_collection_not_exists(
+        self, retriever: QdrantRetriever
+    ) -> None:
+        retriever._client.get_collections = AsyncMock(return_value=MagicMock(collections=[]))
+        retriever._client.delete = AsyncMock()
+
+        await retriever.delete_chunks("doc-1")
+
+        retriever._client.delete.assert_not_awaited()
+
     async def test_search_maps_points_to_results(self, retriever: QdrantRetriever) -> None:
         point = MagicMock()
         point.score = 0.9

@@ -34,6 +34,9 @@ class InMemoryRetriever(RetrieverPort):
             for score, cid, content, meta in top_k
         ]
 
+    async def delete_chunks(self, document_id: str) -> None:
+        self._chunks = [item for item in self._chunks if item[2].source_document_id != document_id]
+
     async def ping(self) -> bool:
         return True
 

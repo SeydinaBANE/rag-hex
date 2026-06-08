@@ -2,7 +2,14 @@ import hashlib
 import logging
 
 from qdrant_client import AsyncQdrantClient
-from qdrant_client.models import Distance, PointStruct, VectorParams
+from qdrant_client.models import (
+    Distance,
+    FieldCondition,
+    Filter,
+    MatchValue,
+    PointStruct,
+    VectorParams,
+)
 
 from rag_system.domain.model.document import Chunk, ChunkMetadata
 from rag_system.domain.model.embedding import Embedding
@@ -63,6 +70,19 @@ class QdrantRetriever(RetrieverPort):
             collection_name=self._collection_name,
             points=points,
         )
+
+    async def delete_chunks(self, document_id: str) -> None:
+        collections = await self._client.get_collections()
+        exists = any(c.name == self._collection_name for c in collections.collections)
+        if not exists:
+            return
+        await self._client.delete(
+            collection_name=self._collection_name,
+            points_selector=Filter(
+                must=[FieldCondition(key="source_document_id", match=MatchValue(value=document_id))]
+            ),
+        )
+        logger.info("Deleted vectors for document %s", document_id)
 
     async def _ensure_collection(self, vector_size: int) -> None:
         collections = await self._client.get_collections()

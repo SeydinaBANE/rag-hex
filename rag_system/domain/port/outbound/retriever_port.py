@@ -13,6 +13,9 @@ class RetrieverPort(ABC):
     async def store_chunks(self, chunks: list[Chunk]) -> None: ...
 
     @abstractmethod
+    async def delete_chunks(self, document_id: str) -> None: ...
+
+    @abstractmethod
     async def ping(self) -> bool: ...
 
     @abstractmethod
