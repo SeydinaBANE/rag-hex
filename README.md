@@ -18,6 +18,7 @@ RAG system built with a hexagonal (ports & adapters) architecture — domain pur
 rag_system/
 ├── domain/              ← pure Python, zero external dependencies
 │   ├── model/           ← dataclasses (Document, Chunk, Query, Embedding)
+│   ├── exceptions.py    ← typed domain exceptions (EmbeddingError, LLMError, RetrievalError)
 │   ├── port/inbound/    ← inbound ABCs (QueryUseCase, IngestionUseCase)
 │   ├── port/outbound/   ← outbound ABCs (EmbedderPort, RetrieverPort, LLMPort, ...)
 │   └── service/         ← business orchestration (QueryService, IngestionService)
@@ -50,22 +51,24 @@ uv run pytest tests/unit/ -x  # fast verification
 |---|---|
 | Lint | `uv run ruff check rag_system/ tests/` |
 | Format | `uv run ruff format rag_system/ tests/` |
-| Typecheck | `uv run mypy --strict -p rag_system` |
-| Test all | `uv run pytest tests/` |
-| Test unit | `uv run pytest tests/unit/` |
+| Typecheck | `uv run mypy --strict --no-warn-unused-ignores -p rag_system` |
+| Test unit | `uv run pytest tests/unit/ --cov=rag_system` |
 | Test integ | `uv run pytest tests/integration/` |
 | Pre-commit | `uv run pre-commit run --all-files` |
-| All checks | `make all` |
+| All checks | `make all` (lint + typecheck + unit tests) |
+| Logs | `make logs` |
+| Health | `make health` / `make readiness` |
 
 ## API
 
 | Method | Route | Description |
 |---|---|---|
-| GET | `/health` | Liveness check |
+| GET | `/health` | Liveness check (toujours 200) |
+| GET | `/readiness` | Deep check DB + Qdrant → 503 si dégradé |
 | POST | `/query` | RAG query |
 | POST | `/query/stream` | SSE streaming RAG query |
 | POST | `/ingest` | Ingest a document |
-| GET | `/documents` | List all documents |
+| GET | `/documents` | List documents (pagination: `?limit=50&offset=0`) |
 | GET | `/documents/{id}` | Get document details |
 | DELETE | `/documents/{id}` | Delete document |
 
@@ -82,13 +85,15 @@ uv run python -m rag_system.adapter.inbound.cli.ingest_cli query --text "Your qu
 make build     # docker compose build
 make up        # docker compose up -d
 make down      # docker compose down
+make logs      # docker compose logs -f
 ```
 
-Four services: `app` (uvicorn :8000), `frontend` (Next.js :3000), `qdrant` (:6333), `postgres` (:5432).
+Four services: `app` (gunicorn :8000), `frontend` (Next.js :3000), `qdrant` (:6333), `postgres` (:5432).
 
 ## Tech stack
 
 - **Python** 3.12+, uv, ruff strict, mypy strict
+- **Gunicorn** + UvicornWorker (4 workers, non-root user in Docker)
 - **OpenRouter** for LLM + embeddings (swap without code changes)
 - **Qdrant** vector store
 - **PostgreSQL** document store (auto-migrates on first connection)
@@ -99,10 +104,20 @@ Four services: `app` (uvicorn :8000), `frontend` (Next.js :3000), `qdrant` (:633
 
 All config via `.env`. See `.env.example` for required keys.
 
-**Key detail**: `settings.py` reads `OPENROUTER_MODEL` (not `OPENROUTER_LLM_MODEL` as in `.env.example`).
+| Variable | Default | Notes |
+|---|---|---|
+| `OPENROUTER_API_KEY` | — | Required |
+| `OPENROUTER_MODEL` | `anthropic/claude-sonnet-20241022` | LLM model |
+| `OPENROUTER_EMBEDDING_MODEL` | `openai/text-embedding-3-small` | |
+| `API_KEY` | _(empty = auth disabled)_ | Shared secret frontend ↔ backend |
+| `ALLOWED_ORIGINS` | `http://localhost:3000` | Comma-separated CORS origins |
+| `ENVIRONMENT` | `development` | Set to `production` for strict startup validation |
+| `QDRANT_HOST` | `localhost` | |
+| `POSTGRES_*` | see `.env.example` | |
 
 ## Testing
 
 - Unit tests mock `Container` services with `unittest.mock.patch.object` + `AsyncMock`
 - Integration tests need Qdrant + PostgreSQL running; skip on 401 if API key missing
 - `pytest` with `asyncio_mode = auto` — no `@pytest.mark.asyncio` needed
+- CI: 4 jobs — `quality` (lint+typecheck), `test` (unit+coverage), `frontend` (tsc+eslint), `docker` (build)
